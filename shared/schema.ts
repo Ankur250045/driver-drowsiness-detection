@@ -1,18 +1,27 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+export type DetectionStatus = 'alert' | 'drowsy' | 'critical';
+
+export interface DetectionSettings {
+  earThreshold: number;
+  earConsecFrames: number;
+  marThreshold: number;
+  marConsecFrames: number;
+}
+
+export interface DetectionMetrics {
+  ear: number;
+  mar: number;
+  status: DetectionStatus;
+  framesEyesClosed: number;
+  framesYawning: number;
+}
+
+export const detectionSettingsSchema = z.object({
+  earThreshold: z.number().min(0.1).max(0.5),
+  earConsecFrames: z.number().int().min(5).max(60),
+  marThreshold: z.number().min(0.3).max(1.0),
+  marConsecFrames: z.number().int().min(5).max(60),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export type DetectionSettingsInput = z.infer<typeof detectionSettingsSchema>;
