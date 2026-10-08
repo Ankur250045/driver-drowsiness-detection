@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/__pycache__
+**/.venv
+**/*.db
+ml/data/raw/*.csv
+ml/data/processed
+ml/data/mrl_eye
+.git

@@ -1,0 +1,33 @@
+{
+  "name": "drowsiness-baseline",
+  "version": "0.1.0",
+  "type": "logistic_regression",
+  "trained": false,
+  "source": "Hand-set prior weights derived from drowsiness literature (Soukupova & Cech 2016; Wierwille et al. PERCLOS). NOT trained on data. Run `python -m ml.training.train_classifier` to replace this file with a trained model.",
+  "features": [
+    "ear_mean",
+    "ear_std",
+    "perclos",
+    "blink_rate",
+    "blink_duration_mean",
+    "longest_closure",
+    "mar_mean",
+    "yawn_rate",
+    "pitch_mean",
+    "pitch_std",
+    "yaw_std"
+  ],
+  "scaler": {
+    "mean": [0.28, 0.03, 0.08, 17.0, 0.2, 0.3, 0.25, 0.5, 0.0, 3.0, 4.0],
+    "scale": [0.05, 0.02, 0.12, 8.0, 0.15, 0.5, 0.12, 1.5, 10.0, 3.0, 4.0]
+  },
+  "layers": [
+    {
+      "weights": [[-1.2], [0.2], [1.8], [0.3], [1.0], [1.5], [0.4], [1.0], [0.5], [0.4], [0.1]],
+      "bias": [-2.0],
+      "activation": "sigmoid"
+    }
+  ],
+  "metrics": null,
+  "trained_at": null
+}

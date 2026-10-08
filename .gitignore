@@ -1,6 +1,25 @@
-node_modules
-dist
+# dependencies / builds
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# secrets & local state
+.env
+*.db
+
+# datasets & large artifacts
+ml/data/raw/*
+!ml/data/raw/.gitkeep
+ml/data/processed/*
+!ml/data/processed/.gitkeep
+ml/data/mrl_eye/
+ml/models/*.joblib
+ml/models/*.keras
+
 .DS_Store
-server/public
-vite.config.ts.*
 *.tar.gz

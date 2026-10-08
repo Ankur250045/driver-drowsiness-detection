@@ -1,206 +1,125 @@
-# Driver Drowsiness Detection System
+# DrowsiGuard AI — Real-time Driver Drowsiness Detection
 
-A real-time driver drowsiness detection web application using AI-powered face landmark analysis. Monitor alertness with Eye Aspect Ratio (EAR) and Mouth Aspect Ratio (MAR) detection to prevent accidents.
+> Computer vision + machine learning system that detects driver fatigue (microsleeps, slow blinks, yawning,
+> head nodding) from a webcam **in real time, entirely in the browser** — and phones the driver if the
+> alarm doesn't wake them.
 
-## Features
+![stack](https://img.shields.io/badge/TensorFlow.js-MediaPipe-orange) ![stack](https://img.shields.io/badge/React-TypeScript-blue)
+![stack](https://img.shields.io/badge/FastAPI-SQLAlchemy-teal) ![stack](https://img.shields.io/badge/scikit--learn-TensorFlow-yellow)
+![license](https://img.shields.io/badge/license-MIT-green)
 
-- **Real-time Face Detection** - Uses TensorFlow.js MediaPipe Face Mesh for accurate facial landmark detection
-- **Drowsiness Monitoring** - Tracks eye closure (EAR) and yawning (MAR) patterns
-- **Visual & Audio Alerts** - Critical alerts with pulsing red overlay and alarm sound
-- **Calibration System** - Personalized threshold adjustment for different users
-- **Tunable Parameters** - Adjust detection sensitivity with easy-to-use sliders
-- **Privacy-First** - All processing happens locally in the browser, no data transmission
-- **Responsive Design** - Works on desktop and mobile devices
-- **Debug Mode** - Real-time FPS and metric visualization
+## Highlights
 
-## Quick Start
+- **On-device vision pipeline** — MediaPipe Face Mesh (478 3D landmarks) on WebGL at ~30 FPS; no video leaves the browser.
+- **Feature engineering** — EAR, MAR and 3D head pose per frame → 11 temporal features over a 10 s window
+  (PERCLOS, blink rate & duration, longest closure, yawn rate, nodding…).
+- **ML classifier** — logistic regression / MLP producing a calibrated drowsiness probability, EMA-smoothed, combined
+  with a hard microsleep rule in an alert state machine.
+- **Explainable AI** — live occlusion-based feature attributions ("why does the model think I'm drowsy?").
+- **Train in the browser** — record labelled data in the *Data Lab*, train a neural net with TensorFlow.js, inspect loss
+  curves / confusion matrix / ROC-AUC, and hot-deploy it to the monitor.
+- **Reproducible Python ML pipeline** — preprocessing, 5-model comparison with session-grouped cross-validation,
+  evaluation reports, portable model export, and an eye-state CNN on the MRL Eye Dataset.
+- **Escalating alerts** — on-screen alarm → sound → vibration → **automatic phone call** (Twilio) and SMS to an
+  emergency contact when the alarm goes unacknowledged.
+- **FastAPI backend** — JWT auth, prediction API, session analytics, dataset collection; SQLite via SQLAlchemy.
+- **Tested** — Vitest (feature maths, classifier, metrics) and pytest (API, escalation with mocked Twilio, export fidelity).
 
-### Running on Replit
+## Repository layout
 
-1. Open the Replit preview
-2. **Important**: If camera permissions are blocked, click "Open in new tab" in the preview window
-3. Allow camera access when prompted
-4. The app will automatically start detecting drowsiness
+```
+├── frontend/            React + TypeScript + Vite + Tailwind web app
+│   ├── app/             entry point, router, route pages (Monitor, Analytics, Data Lab, Model Card…)
+│   ├── components/      UI (camera + mesh overlay, gauges, charts, XAI panel, alert overlay…)
+│   ├── hooks/           useDrowsinessEngine, useCamera, useEscalation, useBackend
+│   ├── services/        face detection, feature extraction, classifier, TF.js trainer, API client
+│   ├── types/           shared TypeScript types
+│   └── public/models/   deployed model artifact (drowsiness_model.json)
+├── backend/             FastAPI service
+│   └── app/{api,services,database,models,utils}
+├── ml/                  data → preprocessing → training → evaluation → models → inference (+ notebooks)
+│   └── feature_spec.json   ← single source of truth for model inputs
+├── docs/                architecture.md · api.md · ml-report.md
+├── tests/               frontend (vitest) · backend (pytest) · ml (pytest)
+└── docker-compose.yml
+```
 
-### Running Locally
+## Quick start
+
+### 1. Frontend (works on its own)
 
 ```bash
-# Install dependencies
+cd frontend
 npm install
-
-# Start development server
-npm run dev
-
-# Open http://localhost:5000 in your browser
+npm run dev          # http://localhost:5173
 ```
 
-## How It Works
+Open **Live Monitor**, allow camera access, click **Calibrate**, then **Start session**.
+Use Chrome/Edge on desktop or Android Chrome (vibration is Android-only).
 
-### Detection Algorithm
+### 2. Backend (accounts, analytics, phone-call escalation)
 
-1. **Eye Aspect Ratio (EAR)**
-   - Measures eye openness using facial landmarks
-   - Default threshold: 0.23
-   - Triggers drowsy alert when eyes are closed for 15+ consecutive frames (~0.5 seconds)
+Requires Python 3.11+.
 
-2. **Mouth Aspect Ratio (MAR)**
-   - Detects yawning by measuring mouth opening
-   - Default threshold: 0.6
-   - Triggers drowsy alert when yawning detected for 10+ consecutive frames
-
-3. **Status Levels**
-   - **Alert** (Green): Normal driving state
-   - **Drowsy** (Yellow): Warning - half the critical threshold reached
-   - **Critical** (Red): Drowsiness detected - immediate action required
-
-### Calibration
-
-1. Click the "Calibrate" button in the settings panel
-2. Look directly at the camera with eyes normally open for 3 seconds
-3. The system will automatically adjust thresholds based on your baseline measurements
-4. Recommended for users with glasses or different eye shapes
-
-## User Interface
-
-### Camera Feed
-- Live video preview with status-based border colors
-- Pulses red when critical drowsiness is detected
-- Shows calibration overlay during calibration process
-
-### Status Dashboard
-- Current driver status (Alert/Drowsy/Critical)
-- Real-time EAR and MAR values
-- Optional FPS counter in debug mode
-
-### Settings Panel
-- **EAR Threshold**: Adjust eye closure sensitivity (0.1 - 0.5)
-- **EAR Consecutive Frames**: Set frames required for alert (5 - 60)
-- **MAR Threshold**: Adjust yawn detection sensitivity (0.3 - 1.0)
-- **MAR Consecutive Frames**: Set frames required for alert (5 - 60)
-- **Calibrate**: Start personalized calibration
-- **Mute/Unmute**: Control audio alarm
-- **Reset**: Restore default settings
-
-### Debug Mode
-Click the bug icon in the bottom-right corner to toggle debug mode and see:
-- Real-time frame rate (FPS)
-- Current EAR/MAR values
-- Detection performance metrics
-
-## Tuning Guidelines
-
-### For Different Users
-
-**Wearing Glasses:**
-- Lower EAR threshold to 0.20-0.21
-- Use calibration for best results
-
-**Heavy Eyelids:**
-- Increase EAR threshold to 0.25-0.27
-- Adjust consecutive frames to 20-25
-
-**High Sensitivity:**
-- Lower both EAR threshold (0.21) and consecutive frames (10-12)
-- May result in more false positives but better safety
-
-**Low Sensitivity:**
-- Increase consecutive frames to 20-30
-- Keep thresholds at default values
-
-### Performance Optimization
-
-The app runs at a target of 15-30 FPS for optimal performance:
-- Lower-end devices: ~15 FPS (still effective)
-- Modern devices: 25-30 FPS (smooth detection)
-
-## Browser Compatibility
-
-### Recommended Browsers
-- Chrome/Edge (Desktop): Full support
-- Firefox (Desktop): Full support
-- Safari (Desktop): Limited camera support
-
-### Mobile Browsers
-- Chrome (Android): Works with "Open in new tab"
-- Safari (iOS): Limited MediaPipe support
-
-## Privacy & Security
-
-- **No Server Processing**: All detection runs in your browser
-- **No Data Collection**: Video frames never leave your device
-- **No Storage**: No recordings or personal data stored
-- **Open Source**: Transparent, auditable code
-
-## Technical Details
-
-### Technologies Used
-- **Frontend**: React + TypeScript
-- **ML Model**: TensorFlow.js + MediaPipe Face Mesh
-- **Styling**: Tailwind CSS
-- **Build Tool**: Vite
-
-### Detection Parameters
-```typescript
-Default Settings:
-- EAR Threshold: 0.23
-- EAR Consecutive Frames: 15 (0.5s at 30 FPS)
-- MAR Threshold: 0.6
-- MAR Consecutive Frames: 10 (0.33s at 30 FPS)
+```bash
+cd backend
+python -m venv .venv && .venv\Scripts\activate      # macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+copy .env.example .env                               # macOS/Linux: cp .env.example .env
+uvicorn app.main:app --reload                        # http://localhost:8000/api/docs
 ```
 
-### Face Landmark Indices
-- Eye landmarks: Points 33, 133, 144, 153, 158, 160 (left), 263, 362, 373, 380, 385, 387 (right)
-- Mouth landmarks: Points 13, 14, 78, 308
+The Vite dev server proxies `/api` to port 8000, so just refresh the web app — the sidebar shows **API · Online**.
 
-## Troubleshooting
+### 3. Phone-call escalation (optional)
 
-### Camera Not Working
-1. Check browser permissions (Settings → Privacy → Camera)
-2. Ensure no other apps are using the camera
-3. Try opening in a new tab/window
-4. Refresh the page
+1. Create a Twilio account, buy/verify a voice-capable number (trial accounts can only call verified numbers).
+2. Put `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` in `backend/.env` and restart the API.
+3. In the web app: sign in → Live Monitor → **Emergency call escalation** → enter your number in E.164 format
+   (`+91…`), enable, **Test call**.
 
-### Model Loading Slowly
-- First load downloads ~10MB of ML models
-- Subsequent loads use browser cache
-- Check internet connection
+Without credentials the feature runs in clearly-labelled *simulated* mode (logged, nothing sent).
 
-### High False Positive Rate
-- Run calibration
-- Increase consecutive frames threshold
-- Adjust EAR/MAR thresholds higher
+### 4. ML pipeline
 
-### Low Sensitivity
-- Run calibration
-- Lower EAR threshold to 0.21-0.22
-- Decrease consecutive frames to 10-12
+```bash
+pip install -r ml/requirements.txt
+python -m ml.preprocessing.synthetic          # optional: bootstrap data to test the pipeline
+python -m ml.preprocessing.build_dataset      # merge ml/data/raw/*.csv → processed dataset
+python -m ml.training.train_classifier        # compare 5 models, write reports, export best model
+python -m ml.training.train_eye_cnn --data ml/data/mrl_eye   # optional CNN
+python -m ml.inference.realtime_webcam        # optional OpenCV desktop demo
+```
 
-## Safety Notice
+Collect real data in the **Data Lab** (export CSV → `ml/data/raw/`). See [ml/data/README.md](ml/data/README.md).
 
-This system is designed to **assist** drivers in monitoring drowsiness, not replace safe driving practices:
+### 5. Docker
 
-⚠️ **Not a Replacement for Rest**: If you feel tired, pull over and rest
-⚠️ **Supplementary Tool**: Use alongside good judgment and regular breaks
-⚠️ **Regular Calibration**: Recalibrate when changing drivers or conditions
+```bash
+docker compose up --build        # web app → http://localhost:8080, API → http://localhost:8000
+```
+
+### Tests
+
+```bash
+cd frontend && npm test          # vitest
+pytest                           # from repo root: backend + ml
+```
+
+## How it works
+
+```
+Webcam → Face Mesh (478 pts) → EAR · MAR · head pose → 10 s window → 11 features
+       → standardise → LogReg/MLP → P(drowsy) → EMA → state machine → alarm → phone call
+```
+
+See [docs/architecture.md](docs/architecture.md) for the full diagram, and [docs/ml-report.md](docs/ml-report.md)
+for the methodology (feature definitions, leakage-free evaluation, results template, limitations).
+
+## Safety notice
+
+This is an educational / research prototype, **not a certified safety device**. If you feel tired, stop and rest.
 
 ## License
 
-MIT License - See LICENSE file for details
-
-## Contributing
-
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-## Support
-
-For issues or questions:
-- Check the Troubleshooting section
-- Review browser compatibility
-- Ensure proper lighting conditions
-
----
-
-**Stay Alert, Stay Safe** 🚗💤
+MIT © Ankur Verma

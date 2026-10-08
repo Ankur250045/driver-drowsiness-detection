@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "window_seconds": 10,
+  "description": "Window-level features computed from MediaPipe Face Mesh landmarks over a sliding window. Shared contract between frontend (live inference + data export), backend (/api/predict) and ml/ (training).",
+  "features": [
+    { "name": "ear_mean", "unit": "ratio", "description": "Mean Eye Aspect Ratio (both eyes) over the window" },
+    { "name": "ear_std", "unit": "ratio", "description": "Standard deviation of EAR over the window" },
+    { "name": "perclos", "unit": "fraction", "description": "PERCLOS: fraction of frames with eyes closed (EAR below calibrated threshold)" },
+    { "name": "blink_rate", "unit": "blinks/min", "description": "Blinks per minute (closures shorter than the microsleep limit)" },
+    { "name": "blink_duration_mean", "unit": "s", "description": "Mean duration of eye-closure events" },
+    { "name": "longest_closure", "unit": "s", "description": "Longest continuous eye closure in the window (microsleep indicator)" },
+    { "name": "mar_mean", "unit": "ratio", "description": "Mean Mouth Aspect Ratio over the window" },
+    { "name": "yawn_rate", "unit": "yawns/min", "description": "Yawns per minute (MAR above threshold for >= 1 s)" },
+    { "name": "pitch_mean", "unit": "deg", "description": "Mean head pitch (positive = head tilted down)" },
+    { "name": "pitch_std", "unit": "deg", "description": "Std of head pitch (nodding)" },
+    { "name": "yaw_std", "unit": "deg", "description": "Std of head yaw (looking around / distraction)" }
+  ],
+  "labels": { "0": "alert", "1": "drowsy" }
+}
