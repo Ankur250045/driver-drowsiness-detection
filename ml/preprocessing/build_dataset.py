@@ -91,7 +91,7 @@ def main() -> None:
     df.to_csv(out, index=False)
     for k, v in report.items():
         print(f"  {k:>20}: {v}")
-    print(f"Saved {len(df)} windows → {out}")
+    print(f"Saved {len(df)} windows -> {out}")
 
 
 if __name__ == "__main__":

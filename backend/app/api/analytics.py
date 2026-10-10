@@ -1,9 +1,9 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.orm import DrivingSession
-from app.models.schemas import AnalyticsSummary, SessionCreate, SessionOut
+from app.models.schemas import AnalyticsSummary, SessionCreate, SessionDetail, SessionOut
 from app.services.analytics import summarize
 
 router = APIRouter(tags=["analytics"])
@@ -19,6 +19,7 @@ def create_session(payload: SessionCreate, db: DbSession, user: CurrentUser) -> 
         return existing
     data = payload.model_dump()
     data["events"] = [e.model_dump() for e in payload.events]
+    data["driver_type"] = payload.driver_type or user.driver_type
     session = DrivingSession(user_id=user.id, **data)
     db.add(session)
     db.commit()
@@ -35,6 +36,14 @@ def list_sessions(db: DbSession, user: CurrentUser, limit: int = 50) -> list[Dri
         .limit(min(limit, 200))
     )
     return list(db.scalars(stmt))
+
+
+@router.get("/sessions/{session_id}", response_model=SessionDetail)
+def get_session(session_id: int, db: DbSession, user: CurrentUser) -> DrivingSession:
+    session = db.get(DrivingSession, session_id)
+    if not session or session.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session not found")
+    return session
 
 
 @router.get("/analytics/summary", response_model=AnalyticsSummary)

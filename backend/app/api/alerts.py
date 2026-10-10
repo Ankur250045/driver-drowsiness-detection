@@ -4,10 +4,21 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession, get_notifier
+from app.api.deps import CurrentUser, DbSession, get_notifier, get_watch_notifier
 from app.models.orm import AlertEscalation, User
-from app.models.schemas import AlertSettingsIn, AlertSettingsOut, EscalateRequest, EscalationOut, EscalationResult
+from app.models.schemas import (
+    AlertSettingsIn,
+    AlertSettingsOut,
+    EscalateRequest,
+    EscalationOut,
+    EscalationResult,
+    UserOut,
+    WatchAlertIn,
+    WatchAlertOut,
+    WatchSettingsIn,
+)
 from app.services.notifications import TwilioNotifier
+from app.services.watch import WatchNotifier
 from app.utils.config import get_settings
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
@@ -105,3 +116,24 @@ def escalation_history(user: CurrentUser, db: DbSession, limit: int = 20):
         .limit(min(limit, 100))
     )
     return list(db.scalars(stmt))
+
+
+# ---------- smartwatch (phone notification → watch vibration) ----------
+
+
+@router.put("/watch", response_model=UserOut)
+def set_watch_topic(payload: WatchSettingsIn, user: CurrentUser, db: DbSession) -> User:
+    user.watch_topic = payload.watch_topic
+    db.commit()
+    return user
+
+
+@router.post("/watch", response_model=WatchAlertOut)
+def alert_watch(
+    payload: WatchAlertIn,
+    user: CurrentUser,
+    notifier: Annotated[WatchNotifier, Depends(get_watch_notifier)],
+) -> WatchAlertOut:
+    """Sent by the monitor as soon as the alarm starts (no delay, unlike the phone call)."""
+    result = notifier.send(user.watch_topic, payload.reason, test=payload.test)
+    return WatchAlertOut(status=result.status, message=result.message)

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Insights – Driver Drowsiness Detection</title>
+    <link rel="icon" href="img/favicon.png" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header id="site-header"></header>
+
+    <main class="container">
+      <div class="page-head">
+        <div>
+          <h1>Insights (made with R)</h1>
+          <p>
+            The R script <code>r/insights.R</code> reads all saved sessions from the database, draws the charts with
+            ggplot2 and runs a few statistical tests. The results are shown below.
+          </p>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" id="run-btn">Run R analysis again</button>
+        </div>
+      </div>
+
+      <div class="notice hidden" id="no-r"></div>
+      <div class="notice hidden" id="demo-note"></div>
+      <p class="small muted" id="generated"></p>
+
+      <div id="results" class="hidden">
+        <div class="row cols-4" id="kpis"></div>
+
+        <section class="panel" style="margin-top: 16px">
+          <div class="panel-head"><h2>Key findings</h2></div>
+          <div class="panel-body"><ul id="findings" style="margin: 0; padding-left: 20px"></ul></div>
+        </section>
+
+        <section class="panel" style="margin-top: 16px">
+          <div class="panel-head"><h2>Statistical tests</h2></div>
+          <div class="panel-body flush">
+            <table>
+              <thead><tr><th>Question</th><th>Test</th><th class="num">Statistic</th><th class="num">p-value</th><th>Result (α = 0.05)</th></tr></thead>
+              <tbody id="tests"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="row cols-2" style="margin-top: 16px" id="plots"></div>
+
+        <section class="panel" style="margin-top: 16px">
+          <div class="panel-head"><h2>By driver type</h2></div>
+          <div class="panel-body flush">
+            <table>
+              <thead><tr><th>Driver type</th><th class="num">Sessions</th><th class="num">Hours</th><th class="num">Mean probability</th><th class="num">Microsleeps / hour</th><th class="num">Alarms / hour</th></tr></thead>
+              <tbody id="by-type"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="js/pages/insights.js"></script>
+  </body>
+</html>

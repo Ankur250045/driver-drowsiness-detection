@@ -1,99 +1,102 @@
 # System Architecture
 
-DrowsiGuard AI is a **local-first** system: the entire perception and inference pipeline runs in
-the browser, so it works offline and no video ever leaves the device. The backend adds accounts,
-analytics, dataset collection, a server-side prediction API and **phone-call escalation**.
+The project has four parts:
+
+1. **Website** (`frontend/`) — plain HTML, CSS and JavaScript. Face detection, feature extraction and the
+   classifier all run in the browser, so the video never leaves the computer.
+2. **Backend** (`backend/`) — Python FastAPI server. Serves the website, handles login and driver profiles,
+   stores sessions in SQLite, sends smartwatch notifications and phone calls, and runs the R script.
+3. **R analysis** (`r/insights.R`) — reads the sessions from the database, makes charts and runs statistical tests.
+4. **ML pipeline** (`ml/`) — Python scripts to build a dataset, compare models and export the best one.
 
 ```mermaid
 flowchart LR
-  subgraph Browser["Browser (React + TensorFlow.js)"]
-    CAM[Webcam 30 FPS] --> FM[MediaPipe Face Mesh<br/>478 3D landmarks · WebGL]
-    FM --> GEO[Per-frame geometry<br/>EAR · MAR · head pose]
-    GEO --> WIN[10 s sliding window<br/>11 temporal features]
-    WIN --> CLF[Classifier<br/>LogReg / MLP · pure JS]
-    CLF --> EMA[EMA smoothing]
-    EMA --> SM{Alert state machine}
-    GEO -- continuous closure ≥ 1 s --> SM
-    SM --> ALARM[Sound + vibration + overlay]
-    ALARM -- not acknowledged --> ESC[Escalation timer]
-    WIN --> LAB[Data Lab recorder] --> TFJS[TF.js training]
-    TFJS --> CLF
+  subgraph Browser["Browser (HTML / CSS / JavaScript)"]
+    CAM[Webcam] --> FM[MediaPipe Face Mesh<br/>478 landmarks]
+    FM --> GEO[EAR · MAR · head pose]
+    GEO --> WIN[10 s window → 11 features]
+    WIN --> CLF[Classifier → probability]
+    CLF --> SM{Status: alert / drowsy / critical}
+    GEO -- eyes closed ≥ microsleep limit --> SM
+    SM --> ALARM[Red screen + beeping + phone vibration]
+    ALARM --> BT[Bluetooth band<br/>Immediate Alert 0x1802]
+    ALARM -- not acknowledged --> TIMER[Countdown]
   end
 
   subgraph API["FastAPI backend"]
-    AUTH[/auth · users/]
-    PRED[/predict/]
-    SES[/sessions · analytics/]
-    DS[/datasets/]
-    AL[/alerts/] --> TW[Twilio Voice + SMS]
-    DB[(SQLite · SQLAlchemy)]
+    AUTH[/auth · users · profile/]
+    SES[/sessions/]
+    WATCH[/alerts/watch/] --> NTFY[ntfy push]
+    CALL[/alerts/escalate/] --> TW[Twilio call + SMS]
+    INS[/insights/] --> R[Rscript insights.R]
+    DB[(SQLite)]
   end
 
-  subgraph ML["ml/ (Python)"]
-    RAW[raw CSVs] --> PRE[preprocessing] --> TRAIN[training + model selection] --> EVAL[evaluation reports]
-    TRAIN --> ART[[drowsiness_model.json]]
-  end
-
-  ESC -- POST /api/alerts/escalate --> AL
-  SM -- session report --> SES
-  LAB -- CSV / upload --> DS --> RAW
-  ART --> CLF
-  ART --> PRED
-  TW -- phone rings --> PHONE((Driver's phone))
+  ALARM -- POST --> WATCH
+  TIMER -- POST --> CALL
+  SM -- session report --> SES --> DB
+  R -- reads --> DB
+  R -- PNG + summary.json --> INSPAGE[Insights page]
+  NTFY --> PHONE((Phone)) --> WATCHDEV((Smartwatch vibrates))
+  TW --> PHONE
 ```
 
-## Components
+## Pages
 
-| Layer | Path | Responsibility |
+| Page | Script | What it does |
 |---|---|---|
-| Routes / pages | `frontend/app/routes/` | Overview, Live Monitor, Analytics, Data Lab, Model Card, Login |
-| Vision + ML engine | `frontend/hooks/useDrowsinessEngine.ts` | Frame loop, feature window, inference, status state machine, events, calibration, sessions |
-| Feature engineering | `frontend/services/featureExtraction.ts`, `windowFeatures.ts` | EAR / MAR / head pose; PERCLOS, blinks, microsleeps, yawns |
-| Inference | `frontend/services/classifier.ts` | Runs the portable model artifact + occlusion explanations |
-| Training | `frontend/services/trainer.ts` | TF.js training, time-blocked split, metrics |
-| Escalation | `frontend/hooks/useEscalation.ts`, `backend/app/api/alerts.py`, `backend/app/services/notifications.py` | Alarm → phone call ladder |
-| API | `backend/app/api/` | REST endpoints (see [api.md](api.md)) |
-| ML pipeline | `ml/` | Dataset building, model comparison, export, CNN (see [ml-report.md](ml-report.md)) |
+| `login.html` | `js/pages/login.js` | Sign in / create account |
+| `profile.html` | `js/pages/profile.js` | Driver type, vehicle number, smartwatch topic, phone-call settings |
+| `monitor.html` | `js/pages/monitor.js` | Camera, live measurements, charts, alarm ladder, driver-type panel |
+| `sessions.html` | `js/pages/sessions.js` | Saved sessions with charts and events |
+| `insights.html` | `js/pages/insights.js` | Results of the R analysis |
+| `training.html` | `js/pages/training.js` | Record examples, train a model, model details |
 
-## Shared contracts
+## JavaScript modules
 
-* **Feature contract** — [`ml/feature_spec.json`](../ml/feature_spec.json) defines the 11 features and their order.
-  The frontend imports it at build time, the backend reads it at start-up, and the ML pipeline uses it for column
-  selection. A unit test asserts the bundled model, the spec and the synthetic generator agree.
-* **Model artifact** — a small JSON file (scaler + dense layers). The same file is executed by
-  `classifier.ts` (browser), `ml_service.py` (backend) and `ml/inference/predict.py`, so predictions are identical
-  everywhere. `tests/ml/test_pipeline.py` verifies the export reproduces scikit-learn's probabilities to 1e-6.
-
-## Alert state machine
-
-| Condition | Status |
+| File | Purpose |
 |---|---|
-| No face for > 1 s | `no-face` |
-| Continuous eye closure ≥ microsleep limit (default 1.0 s) **or** P ≥ critical threshold (0.85) | `critical` → alarm |
-| P ≥ drowsy threshold (0.5) | `drowsy` |
-| otherwise | `alert` |
+| `features.js` | EAR, MAR, head pose, the 11 window features, sliding window |
+| `classifier.js` | Runs `models/drowsiness_model.json` and explains each prediction |
+| `engine.js` | The detection loop: status, events (blinks, yawns, microsleeps, head nods), calibration, sessions |
+| `detector.js` | Loads MediaPipe Face Mesh, starts the camera, draws the landmarks |
+| `drivers.js` | Settings and screen layout for personal / cab / truck drivers |
+| `alarm.js` | Beeping sound and phone vibration |
+| `watch.js` | Smartwatch: Bluetooth Immediate Alert + ntfy notifications |
+| `trainer.js`, `metrics.js`, `synthetic.js` | In-browser training and evaluation |
+| `api.js`, `common.js` | Backend calls, login check, header, toasts |
 
-The microsleep rule fires immediately (it does not wait for the 10 s window), while the classifier
-captures slower fatigue patterns such as rising PERCLOS, slower blinks and yawning.
+## Driver types
 
-## Escalation ladder (wake-up guarantee)
+| | Personal car | Cab / taxi | Truck |
+|---|---|---|---|
+| Microsleep limit | 1.0 s | 1.0 s | 0.8 s |
+| "Drowsy" / alarm probability | 0.50 / 0.85 | 0.45 / 0.80 | 0.40 / 0.75 |
+| Night (22–06) | – | 0.05 more sensitive | 0.05 more sensitive |
+| Timer | trip time | shift time | continuous driving since last break |
+| Breaks | suggested every 2 h | reminder every 2 h | compulsory 45 min after 4 h 30 min |
+| Extra | – | passenger mode (quiet alarm, watch first) | alarms paused during break |
+| Emergency contact | family member | cab company / family | fleet manager |
 
-1. **Visual** — full-screen red overlay.
-2. **Sound** — pulsing 880 Hz square wave via Web Audio.
-3. **Haptics** — `navigator.vibrate` pattern every 2.5 s (Android).
-4. **Phone call** — if the alarm is not acknowledged within *N* seconds (default 8 s, user-configurable),
-   the backend places a Twilio voice call to the driver's phone and SMSes an emergency contact.
-   If the app detects that **neither sound nor vibration is working** (AudioContext suspended by autoplay
-   policy, tab muted, no vibration motor), it escalates after 3 s instead.
+## Alarm ladder
 
-An incoming call uses the phone's native ringtone and vibration, independent of browser permissions —
-which is exactly the failure mode it is designed to cover. Calls are rate-limited per user (60 s cooldown)
-and every attempt is logged in `alert_escalations`. Without Twilio credentials the server runs in
-*simulated* mode and says so in the UI.
+1. Red full-screen alarm and beeping (Web Audio).
+2. Phone vibration (Vibration API — Android only).
+3. Smartwatch:
+   - **ntfy notification** with priority 5. The phone shows it and the paired watch vibrates. This works with almost
+     every smartwatch because watches mirror phone notifications.
+   - **Bluetooth Immediate Alert** (service `0x1802`, characteristic `0x2A06`, level 2 = high alert) for bands that
+     support it, connected with Web Bluetooth.
+4. **Phone call** (Twilio) after the configured delay if "I'm awake" is not pressed, plus an SMS to the emergency
+   contact. If no other channel works the call is made after 3 seconds. Calls are limited to one per minute.
+
+## Shared files
+
+* `ml/feature_spec.json` — the 11 features and their order (a test checks the JavaScript list matches).
+* `frontend/models/drowsiness_model.json` — the classifier (scaler + layers). The browser, the API and
+  `ml/inference/predict.py` all run this same file.
 
 ## Privacy
 
-* Video frames are processed in memory in the browser and never transmitted.
-* Only aggregate session metrics, labelled feature vectors (opt-in upload) and phone numbers (for escalation)
-  are stored server-side.
-* Passwords are hashed with bcrypt; API access uses short-lived JWTs.
+Video is processed only in the browser. The server stores session summaries, phone numbers (for the call), the
+ntfy topic name and labelled feature values only if the user uploads them. Passwords are hashed with bcrypt.

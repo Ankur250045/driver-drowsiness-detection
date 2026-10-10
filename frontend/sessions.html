@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sessions – Driver Drowsiness Detection</title>
+    <link rel="icon" href="img/favicon.png" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <header id="site-header"></header>
+
+    <main class="container">
+      <div class="page-head">
+        <div>
+          <h1>Sessions</h1>
+          <p>Every time you press "Start driving" and then "Stop driving and save", a report is stored here.</p>
+        </div>
+      </div>
+
+      <div id="empty" class="panel empty hidden">
+        <p>No sessions saved yet.</p>
+        <p>Go to the <a href="monitor.html">Monitor</a> page, start driving and stop again to save a session.</p>
+      </div>
+
+      <div id="content" class="hidden">
+        <div class="row cols-6">
+          <div class="stat"><div class="label">Sessions</div><div class="value" id="s-count">0</div></div>
+          <div class="stat"><div class="label">Total time</div><div class="value" id="s-time">0</div></div>
+          <div class="stat"><div class="label">Average probability</div><div class="value" id="s-avg">0</div></div>
+          <div class="stat"><div class="label">Microsleeps</div><div class="value" id="s-micro">0</div></div>
+          <div class="stat"><div class="label">Alarms</div><div class="value" id="s-alarms">0</div></div>
+          <div class="stat"><div class="label">Yawns</div><div class="value" id="s-yawns">0</div></div>
+        </div>
+
+        <section class="panel" style="margin-top: 16px">
+          <div class="panel-head"><h2>Drowsiness probability per session</h2></div>
+          <div class="panel-body"><div class="chart-box"><canvas id="per-session"></canvas></div></div>
+        </section>
+
+        <div class="row side-main" style="margin-top: 16px">
+          <section class="panel">
+            <div class="panel-head"><h2>All sessions</h2></div>
+            <div class="panel-body flush">
+              <div class="table-scroll" style="border: 0; max-height: 480px">
+                <table>
+                  <thead>
+                    <tr><th>Started</th><th class="num">Length</th><th class="num">Alarms</th></tr>
+                  </thead>
+                  <tbody id="session-rows"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2 id="detail-title">Session details</h2></div>
+            <div class="panel-body" id="detail">
+              <p class="muted">Click a session on the left.</p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="js/pages/sessions.js"></script>
+  </body>
+</html>

@@ -19,6 +19,12 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
+    # Driver profile: "personal" | "cab" | "truck" (None until chosen after sign-up)
+    driver_type: Mapped[str | None] = mapped_column(String(20))
+    vehicle_number: Mapped[str | None] = mapped_column(String(20))
+    # ntfy.sh topic for phone → smartwatch notification alerts
+    watch_topic: Mapped[str | None] = mapped_column(String(64))
+
     # Emergency phone-call escalation
     phone_number: Mapped[str | None] = mapped_column(String(20))
     emergency_contact: Mapped[str | None] = mapped_column(String(20))
@@ -44,6 +50,7 @@ class DrivingSession(Base):
     total_yawns: Mapped[int] = mapped_column(Integer)
     microsleeps: Mapped[int] = mapped_column(Integer)
     alerts: Mapped[int] = mapped_column(Integer)
+    driver_type: Mapped[str | None] = mapped_column(String(20))
     events: Mapped[list] = mapped_column(JSON, default=list)
     timeline: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

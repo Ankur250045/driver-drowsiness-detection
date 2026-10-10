@@ -32,8 +32,8 @@ class NotificationResult:
 def build_twiml(reason: str) -> str:
     """Voice message spoken when the driver answers; repeated so it is hard to miss."""
     text = escape(
-        f"Wake up! This is DrowsiGuard. {reason}. "
-        "You may be falling asleep at the wheel. Please pull over safely and take a break."
+        f"Wake up! Driver sleepy. Stop and hydrate. {reason}. "
+        "Please pull over safely, drink some water and take a break."
     )
     return f'<Response><Say voice="alice" loop="3">{text}</Say><Pause length="1"/></Response>'
 

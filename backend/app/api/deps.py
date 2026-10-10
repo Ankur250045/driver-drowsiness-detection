@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.orm import User
 from app.services.notifications import TwilioNotifier
+from app.services.watch import WatchNotifier
 from app.utils.config import get_settings
 from app.utils.security import decode_access_token
 
@@ -38,3 +39,7 @@ OptionalUser = Annotated[User | None, Depends(get_optional_user)]
 
 def get_notifier() -> TwilioNotifier:
     return TwilioNotifier(get_settings())
+
+
+def get_watch_notifier() -> WatchNotifier:
+    return WatchNotifier(get_settings())

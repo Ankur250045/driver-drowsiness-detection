@@ -13,6 +13,10 @@ class UserCreate(BaseModel):
     full_name: str | None = Field(default=None, max_length=120)
 
 
+DriverType = Literal["personal", "cab", "truck"]
+TOPIC = r"^[A-Za-z0-9_-]{8,64}$"
+
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -20,6 +24,15 @@ class UserOut(BaseModel):
     email: EmailStr
     full_name: str | None
     created_at: datetime
+    driver_type: DriverType | None = None
+    vehicle_number: str | None = None
+    watch_topic: str | None = None
+
+
+class ProfileIn(BaseModel):
+    full_name: str | None = Field(default=None, max_length=120)
+    driver_type: DriverType
+    vehicle_number: str | None = Field(default=None, max_length=20)
 
 
 class Token(BaseModel):
@@ -58,6 +71,7 @@ class SessionCreate(BaseModel):
     total_yawns: int = Field(ge=0)
     microsleeps: int = Field(ge=0)
     alerts: int = Field(ge=0)
+    driver_type: DriverType | None = None
     events: list[SessionEvent] = Field(default_factory=list, max_length=500)
     timeline: list[dict] = Field(default_factory=list, max_length=2000)
 
@@ -77,6 +91,12 @@ class SessionOut(BaseModel):
     total_yawns: int
     microsleeps: int
     alerts: int
+    driver_type: str | None = None
+
+
+class SessionDetail(SessionOut):
+    events: list[dict]
+    timeline: list[dict]
 
 
 class HourBucket(BaseModel):
@@ -129,6 +149,20 @@ class EscalationResult(BaseModel):
     status: Literal["calling", "simulated", "failed", "cooldown"]
     call_sid: str | None = None
     sms_sid: str | None = None
+    message: str
+
+
+class WatchSettingsIn(BaseModel):
+    watch_topic: str | None = Field(default=None, pattern=TOPIC)
+
+
+class WatchAlertIn(BaseModel):
+    reason: str = Field(max_length=255)
+    test: bool = False
+
+
+class WatchAlertOut(BaseModel):
+    status: Literal["sent", "failed", "not_configured"]
     message: str
 
 

@@ -11,7 +11,7 @@ Split: by **subject** (sXXXX folder) to avoid identity leakage.
     python -m ml.training.train_eye_cnn --data ml/data/mrl_eye --epochs 15
     # optional browser export:
     pip install tensorflowjs && tensorflowjs_converter --input_format=keras \
-        ml/models/eye_cnn.keras frontend/public/models/eye_cnn
+        ml/models/eye_cnn.keras frontend/models/eye_cnn
 """
 
 import argparse

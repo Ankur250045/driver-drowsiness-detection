@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile – Driver Drowsiness Detection</title>
+    <link rel="icon" href="img/favicon.png" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header id="site-header"></header>
+
+    <main class="container stack">
+      <div class="page-head">
+        <div>
+          <h1>Your profile</h1>
+          <p id="intro">Tell us what kind of driver you are. The monitor screen and the alarm settings change depending on your choice.</p>
+        </div>
+      </div>
+
+      <form id="profile-form" class="panel">
+        <div class="panel-head"><h2>1. Type of driver</h2></div>
+        <div class="panel-body">
+          <div class="type-cards">
+            <label class="type-card" data-type="personal">
+              <input type="radio" name="driver_type" value="personal" required />
+              <h3>Personal car driver</h3>
+              <ul>
+                <li>Normal sensitivity</li>
+                <li>Trip timer with a break suggestion every 2 hours</li>
+                <li>Emergency contact: a family member</li>
+              </ul>
+            </label>
+            <label class="type-card" data-type="cab">
+              <input type="radio" name="driver_type" value="cab" />
+              <h3>Cab / taxi driver</h3>
+              <ul>
+                <li>Shift timer and break reminder every 2 hours</li>
+                <li>More sensitive at night (10 pm – 6 am)</li>
+                <li>"Passenger on board" mode: quiet alarm, watch vibrates first</li>
+              </ul>
+            </label>
+            <label class="type-card" data-type="truck">
+              <input type="radio" name="driver_type" value="truck" />
+              <h3>Truck driver</h3>
+              <ul>
+                <li>Most sensitive settings (microsleep after 0.8 s)</li>
+                <li>Driving-hours log: compulsory 45 min break after 4.5 h</li>
+                <li>Emergency contact: the fleet manager</li>
+              </ul>
+            </label>
+          </div>
+
+          <div class="row cols-2" style="margin-top: 16px">
+            <div class="field">
+              <label for="full_name">Full name</label>
+              <input id="full_name" type="text" />
+            </div>
+            <div class="field">
+              <label for="vehicle_number">Vehicle number (optional)</label>
+              <input id="vehicle_number" type="text" placeholder="e.g. MH12AB1234" maxlength="20" />
+            </div>
+          </div>
+          <button type="submit" class="btn primary">Save and continue</button>
+        </div>
+      </form>
+
+      <section class="panel">
+        <div class="panel-head"><h2>2. Smartwatch vibration</h2></div>
+        <div class="panel-body">
+          <p>
+            When the alarm goes off your smartwatch can vibrate on your wrist. This works with almost any watch or fitness
+            band that shows your phone's notifications (Wear OS, Galaxy Watch, Apple Watch, Mi Band, Amazfit, Noise, boAt…).
+          </p>
+          <ol class="steps">
+            <li>Install the free <b>ntfy</b> app on your phone (Play Store / App Store).</li>
+            <li>In the app tap <b>+</b> and subscribe to this topic: <span class="topic-box" id="topic">–</span></li>
+            <li>In your watch's companion app (Galaxy Wearable, Zepp, Mi Fitness, …) allow notifications from <b>ntfy</b>.</li>
+            <li>Click <b>Send test vibration</b>. Your phone and watch should buzz within a few seconds.</li>
+          </ol>
+          <div class="btn-row">
+            <button class="btn" id="new-topic-btn">Create new topic</button>
+            <button class="btn primary" id="test-watch-btn">Send test vibration</button>
+            <button class="btn" id="remove-topic-btn">Turn off</button>
+          </div>
+          <p class="small muted" style="margin-top: 10px; margin-bottom: 0">
+            Keep the topic name private — anyone who knows it can see these alerts. Bands that support the Bluetooth
+            "Immediate Alert" service can also be connected directly from the Monitor page.
+          </p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>3. Phone call if the alarm is ignored</h2></div>
+        <div class="panel-body">
+          <div class="field">
+            <label class="check"><input type="checkbox" id="esc-enabled" /> Call me if I don't respond to the alarm</label>
+          </div>
+          <div class="row cols-2">
+            <div class="field">
+              <label for="phone">Your mobile number</label>
+              <input id="phone" type="tel" placeholder="+919876543210" />
+              <div class="error hidden" id="phone-error">Use international format, for example +919876543210.</div>
+            </div>
+            <div class="field">
+              <label for="contact" id="contact-label">Emergency contact (gets an SMS)</label>
+              <input id="contact" type="tel" placeholder="optional" />
+              <div class="error hidden" id="contact-error">Use international format.</div>
+            </div>
+          </div>
+          <div class="field">
+            <div class="label-row">
+              <label for="delay">Call after the alarm has been ringing for</label>
+              <span class="mono" id="delay-value">8 s</span>
+            </div>
+            <input id="delay" type="range" min="3" max="30" step="1" value="8" />
+          </div>
+          <p class="small warn hidden" id="twilio-note">
+            Twilio is not set up on the server yet, so calls are only simulated. Add the TWILIO_* values to
+            <code>backend/.env</code> to make real calls.
+          </p>
+          <div class="btn-row">
+            <button class="btn primary" id="save-call-btn">Save</button>
+            <button class="btn" id="test-call-btn">Test call</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="js/pages/profile.js"></script>
+  </body>
+</html>

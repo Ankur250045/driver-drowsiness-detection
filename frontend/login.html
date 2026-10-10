@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign in – Driver Drowsiness Detection</title>
+    <link rel="icon" href="img/favicon.png" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="login-body">
+    <div class="login-page">
+      <h1>Driver Drowsiness Detection</h1>
+      <p class="sub">Real-time drowsiness alerts using your webcam</p>
+
+      <div class="panel">
+        <div class="tabs">
+          <button type="button" id="tab-login" class="active">Sign in</button>
+          <button type="button" id="tab-register">Create account</button>
+        </div>
+        <div class="panel-body">
+          <form id="login-form">
+            <div class="field hidden" id="name-field">
+              <label for="name">Full name</label>
+              <input id="name" type="text" autocomplete="name" />
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" type="email" required autocomplete="email" />
+            </div>
+            <div class="field">
+              <label for="password">Password</label>
+              <input id="password" type="password" required minlength="8" autocomplete="current-password" />
+              <div class="help hidden" id="password-help">At least 8 characters.</div>
+            </div>
+            <p class="small bad hidden" id="error"></p>
+            <button type="submit" class="btn primary block" id="submit-btn">Sign in</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    <script type="module" src="js/pages/login.js"></script>
+  </body>
+</html>

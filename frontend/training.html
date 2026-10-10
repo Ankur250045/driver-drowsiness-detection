@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Training – Driver Drowsiness Detection</title>
+    <link rel="icon" href="img/favicon.png" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.6/dist/face-landmarks-detection.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <header id="site-header"></header>
+
+    <main class="container">
+      <div class="page-head">
+        <div>
+          <h1>Data and model training</h1>
+          <p>
+            Record examples of yourself alert and acting drowsy, train a model in the browser with TensorFlow.js, and
+            see how well it works. The data can also be downloaded as CSV for the Python pipeline in <code>ml/</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="row main-side">
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>1. Record data</h2>
+              <div class="right"><button class="btn small" id="camera-btn">Turn camera on</button></div>
+            </div>
+            <div class="panel-body">
+              <div class="row" style="grid-template-columns: minmax(0, 1fr) 220px">
+                <div class="camera" id="camera">
+                  <video id="video" playsinline muted></video>
+                  <canvas id="overlay"></canvas>
+                  <div class="hud hidden" id="hud"><span class="rec" id="rec-label">REC</span></div>
+                  <div class="message" id="camera-msg">Camera is off.</div>
+                </div>
+                <div>
+                  <p class="small">
+                    One example is saved every second (each one describes the last 10 seconds). Record at least one
+                    minute of each. For "drowsy", blink slowly, close your eyes for a few seconds, yawn and let your head drop.
+                  </p>
+                  <div class="stack">
+                    <button class="btn block" id="rec-alert" disabled>Record "alert"</button>
+                    <button class="btn block" id="rec-drowsy" disabled>Record "drowsy"</button>
+                  </div>
+                  <table style="margin-top: 12px">
+                    <tbody>
+                      <tr><td>Alert examples</td><td class="num" id="n-alert">0</td></tr>
+                      <tr><td>Drowsy examples</td><td class="num" id="n-drowsy">0</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2 id="dataset-title">Dataset</h2>
+              <div class="right">
+                <button class="btn small" id="synthetic-btn">Add synthetic data</button>
+                <button class="btn small" id="csv-btn">Download CSV</button>
+                <button class="btn small" id="upload-btn">Upload to server</button>
+                <button class="btn small" id="clear-btn">Clear</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div id="dataset"></div>
+              <p class="small muted" style="margin: 8px 0 0">
+                Showing the latest 50 rows. Synthetic data is random and only for trying out the training step — do not
+                report results measured on it. Put downloaded CSV files in <code>ml/data/raw/</code>.
+              </p>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Model currently in use</h2></div>
+            <div class="panel-body" id="model-info"></div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-head"><h2>2. Train</h2></div>
+            <div class="panel-body">
+              <div class="field">
+                <label for="arch">Model</label>
+                <select id="arch">
+                  <option value="mlp">Neural network: 11 → 16 → 8 → 1</option>
+                  <option value="logistic_regression">Logistic regression</option>
+                </select>
+              </div>
+              <div class="field">
+                <div class="label-row"><label for="epochs">Epochs</label><span class="mono" id="epochs-val">60</span></div>
+                <input id="epochs" type="range" min="10" max="200" step="10" value="60" />
+              </div>
+              <div class="field">
+                <div class="label-row"><label for="lr">Learning rate</label><span class="mono" id="lr-val">0.01</span></div>
+                <input id="lr" type="range" min="-4" max="-1" step="0.5" value="-2" />
+              </div>
+              <button class="btn primary block" id="train-btn" disabled>Train</button>
+              <p class="small muted" style="margin: 8px 0 0">
+                Needs at least 10 examples of each class. The last 20% of each class (by time) is the test set, because
+                neighbouring examples overlap.
+              </p>
+            </div>
+          </section>
+
+          <section class="panel hidden" id="results-panel">
+            <div class="panel-head"><h2>3. Results</h2></div>
+            <div class="panel-body">
+              <h3>Loss</h3>
+              <div class="chart-box" style="height: 170px"><canvas id="loss-chart"></canvas></div>
+              <h3 style="margin-top: 10px">Accuracy</h3>
+              <div class="chart-box" style="height: 170px"><canvas id="acc-chart"></canvas></div>
+              <div id="metrics"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="js/pages/training.js"></script>
+  </body>
+</html>

@@ -1,124 +1,118 @@
-# DrowsiGuard AI — Real-time Driver Drowsiness Detection
+# Driver Drowsiness Detection
 
-> Computer vision + machine learning system that detects driver fatigue (microsleeps, slow blinks, yawning,
-> head nodding) from a webcam **in real time, entirely in the browser** — and phones the driver if the
-> alarm doesn't wake them.
+B.Tech project: a web application that watches the driver through a webcam and raises an alarm when signs of
+drowsiness appear (long eye closures, slow blinking, yawning, head nodding). If the driver does not react, it makes
+their **smartwatch vibrate** and finally **phones them**. Saved driving sessions are analysed with **R**.
 
-![stack](https://img.shields.io/badge/TensorFlow.js-MediaPipe-orange) ![stack](https://img.shields.io/badge/React-TypeScript-blue)
-![stack](https://img.shields.io/badge/FastAPI-SQLAlchemy-teal) ![stack](https://img.shields.io/badge/scikit--learn-TensorFlow-yellow)
-![license](https://img.shields.io/badge/license-MIT-green)
+- Frontend: plain **HTML, CSS and JavaScript** (no framework, no build step), TensorFlow.js + MediaPipe Face Mesh, Chart.js
+- Backend: **Python / FastAPI**, SQLite (SQLAlchemy), Twilio (phone calls), ntfy (smartwatch notifications)
+- Machine learning: scikit-learn / TensorFlow pipeline in `ml/`, in-browser training with TensorFlow.js
+- Insights: **R** (ggplot2, dplyr, statistical tests) in `r/`
 
-## Highlights
+## Features
 
-- **On-device vision pipeline** — MediaPipe Face Mesh (478 3D landmarks) on WebGL at ~30 FPS; no video leaves the browser.
-- **Feature engineering** — EAR, MAR and 3D head pose per frame → 11 temporal features over a 10 s window
-  (PERCLOS, blink rate & duration, longest closure, yawn rate, nodding…).
-- **ML classifier** — logistic regression / MLP producing a calibrated drowsiness probability, EMA-smoothed, combined
-  with a hard microsleep rule in an alert state machine.
-- **Explainable AI** — live occlusion-based feature attributions ("why does the model think I'm drowsy?").
-- **Train in the browser** — record labelled data in the *Data Lab*, train a neural net with TensorFlow.js, inspect loss
-  curves / confusion matrix / ROC-AUC, and hot-deploy it to the monitor.
-- **Reproducible Python ML pipeline** — preprocessing, 5-model comparison with session-grouped cross-validation,
-  evaluation reports, portable model export, and an eye-state CNN on the MRL Eye Dataset.
-- **Escalating alerts** — on-screen alarm → sound → vibration → **automatic phone call** (Twilio) and SMS to an
-  emergency contact when the alarm goes unacknowledged.
-- **FastAPI backend** — JWT auth, prediction API, session analytics, dataset collection; SQLite via SQLAlchemy.
-- **Tested** — Vitest (feature maths, classifier, metrics) and pytest (API, escalation with mocked Twilio, export fidelity).
+| | |
+|---|---|
+| Login | Sign in / create account; every page requires login |
+| Driver types | Personal car, cab/taxi, truck — each gets its own thresholds and screen |
+| Detection | 478 face landmarks → EAR, MAR, head pose → 11 features over 10 s → classifier → probability |
+| Alarm ladder | red screen + beeping → phone vibration → **smartwatch vibration** → **phone call** + SMS to emergency contact |
+| Smartwatch | (1) urgent push notification via ntfy, mirrored by any watch that shows phone notifications; (2) direct Bluetooth "Immediate Alert" for bands that support it |
+| Cab mode | shift timer, break reminder every 2 h, extra sensitivity at night, quiet "passenger on board" alarm |
+| Truck mode | most sensitive settings, driving-hours log, compulsory 45 min break after 4.5 h (as in EU rule 561/2006), fleet manager as emergency contact |
+| Sessions | every drive is saved with charts and an event list |
+| Training | record your own examples, train a neural network in the browser, see loss curves / confusion matrix |
+| Insights (R) | charts and tests: drowsiness by hour, by driver type, night vs day, session length, PERCLOS |
 
-## Repository layout
+## Project structure
 
 ```
-├── frontend/            React + TypeScript + Vite + Tailwind web app
-│   ├── app/             entry point, router, route pages (Monitor, Analytics, Data Lab, Model Card…)
-│   ├── components/      UI (camera + mesh overlay, gauges, charts, XAI panel, alert overlay…)
-│   ├── hooks/           useDrowsinessEngine, useCamera, useEscalation, useBackend
-│   ├── services/        face detection, feature extraction, classifier, TF.js trainer, API client
-│   ├── types/           shared TypeScript types
-│   └── public/models/   deployed model artifact (drowsiness_model.json)
-├── backend/             FastAPI service
-│   └── app/{api,services,database,models,utils}
-├── ml/                  data → preprocessing → training → evaluation → models → inference (+ notebooks)
-│   └── feature_spec.json   ← single source of truth for model inputs
-├── docs/                architecture.md · api.md · ml-report.md
-├── tests/               frontend (vitest) · backend (pytest) · ml (pytest)
-└── docker-compose.yml
+frontend/            the website (served by the backend)
+  login.html  profile.html  monitor.html  sessions.html  insights.html  training.html
+  css/style.css
+  js/                features.js, classifier.js, engine.js, detector.js, watch.js, alarm.js, drivers.js, ...
+  js/pages/          one script per page
+  models/            drowsiness_model.json (the classifier used in the browser and by the API)
+  insights/          charts + summary.json written by the R script
+backend/             FastAPI app (app/api, app/services, app/models, app/database)
+r/                   insights.R, install_packages.R
+ml/                  data → preprocessing → training → evaluation → models (+ notebook)
+docs/                architecture.md, api.md, ml-report.md
+tests/               frontend (vitest), backend and ml (pytest)
 ```
 
-## Quick start
+## How to run
 
-### 1. Frontend (works on its own)
-
-```bash
-cd frontend
-npm install
-npm run dev          # http://localhost:5173
-```
-
-Open **Live Monitor**, allow camera access, click **Calibrate**, then **Start session**.
-Use Chrome/Edge on desktop or Android Chrome (vibration is Android-only).
-
-### 2. Backend (accounts, analytics, phone-call escalation)
-
-Requires Python 3.11+.
+You need Python 3.11+ and (for the Insights page) R 4.x.
 
 ```bash
 cd backend
-python -m venv .venv && .venv\Scripts\activate      # macOS/Linux: source .venv/bin/activate
+python -m venv .venv
+.venv\Scripts\activate            # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-copy .env.example .env                               # macOS/Linux: cp .env.example .env
-uvicorn app.main:app --reload                        # http://localhost:8000/api/docs
+copy .env.example .env            # macOS/Linux: cp .env.example .env
+uvicorn app.main:app --reload
 ```
 
-The Vite dev server proxies `/api` to port 8000, so just refresh the web app — the sidebar shows **API · Online**.
+Open **http://localhost:8000** in Chrome, create an account, choose your driver type, allow the camera, click
+**Calibrate**, then **Start driving**.
 
-### 3. Phone-call escalation (optional)
+### R insights
 
-1. Create a Twilio account, buy/verify a voice-capable number (trial accounts can only call verified numbers).
-2. Put `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` in `backend/.env` and restart the API.
-3. In the web app: sign in → Live Monitor → **Emergency call escalation** → enter your number in E.164 format
-   (`+91…`), enable, **Test call**.
+```bash
+Rscript r/install_packages.R                              # once
+Rscript r/insights.R backend/drowsiguard.db frontend/insights
+```
 
-Without credentials the feature runs in clearly-labelled *simulated* mode (logged, nothing sent).
+or press **Run R analysis again** on the Insights page. With fewer than 10 recorded sessions the script adds
+clearly-marked example sessions so the charts are not empty.
 
-### 4. ML pipeline
+### Smartwatch
+
+1. Install the **ntfy** app on your phone.
+2. Profile page → *Create new topic* → subscribe to it in the app.
+3. Allow ntfy notifications in your watch's companion app (Galaxy Wearable, Zepp, Mi Fitness, Wear OS, …).
+4. Press *Send test vibration*.
+
+Fitness bands that support the Bluetooth Immediate Alert service can also be connected directly on the Monitor page
+(Chrome on Android, Windows or Mac).
+
+### Phone call (optional)
+
+Create a Twilio account, put `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `TWILIO_FROM_NUMBER` in `backend/.env`,
+restart the server and enable the call on the Profile page. Without them, calls are only simulated.
+
+### ML pipeline (optional)
 
 ```bash
 pip install -r ml/requirements.txt
-python -m ml.preprocessing.synthetic          # optional: bootstrap data to test the pipeline
-python -m ml.preprocessing.build_dataset      # merge ml/data/raw/*.csv → processed dataset
-python -m ml.training.train_classifier        # compare 5 models, write reports, export best model
-python -m ml.training.train_eye_cnn --data ml/data/mrl_eye   # optional CNN
-python -m ml.inference.realtime_webcam        # optional OpenCV desktop demo
-```
-
-Collect real data in the **Data Lab** (export CSV → `ml/data/raw/`). See [ml/data/README.md](ml/data/README.md).
-
-### 5. Docker
-
-```bash
-docker compose up --build        # web app → http://localhost:8080, API → http://localhost:8000
+python -m ml.preprocessing.build_dataset        # CSV files from the Training page → ml/data/raw/
+python -m ml.training.train_classifier          # compares 5 models, writes reports, exports the best one
 ```
 
 ### Tests
 
 ```bash
-cd frontend && npm test          # vitest
-pytest                           # from repo root: backend + ml
+npm install && npm test                             # JavaScript unit tests
+backend\.venv\Scripts\python -m pytest tests/backend
 ```
 
-## How it works
+## How the detection works
 
-```
-Webcam → Face Mesh (478 pts) → EAR · MAR · head pose → 10 s window → 11 features
-       → standardise → LogReg/MLP → P(drowsy) → EMA → state machine → alarm → phone call
-```
+1. **Eye Aspect Ratio** for each eye (Soukupová & Čech, 2016): `EAR = (|p2−p6| + |p3−p5|) / (2·|p1−p4|)`.
+   About 0.3 when the eye is open, close to 0 when closed.
+2. **Mouth Aspect Ratio** for yawns and **head pitch / yaw / roll** from the 3D landmarks.
+3. Over the last 10 seconds: **PERCLOS** (share of time with eyes closed), blink rate, blink duration, longest closure,
+   yawn rate and head-movement statistics — 11 features.
+4. A logistic-regression / small neural-network model turns these into a probability, smoothed over time.
+5. Alarm if the eyes stay closed longer than the microsleep limit or the probability passes the alarm threshold.
 
-See [docs/architecture.md](docs/architecture.md) for the full diagram, and [docs/ml-report.md](docs/ml-report.md)
-for the methodology (feature definitions, leakage-free evaluation, results template, limitations).
+See [docs/architecture.md](docs/architecture.md) and [docs/ml-report.md](docs/ml-report.md) for details.
 
-## Safety notice
+## Limitations
 
-This is an educational / research prototype, **not a certified safety device**. If you feel tired, stop and rest.
+This is a student project and not a certified safety device. It works worse in poor light, with sunglasses or with
+large head turns, and the default model is an untrained baseline until you train one on real data.
 
 ## License
 

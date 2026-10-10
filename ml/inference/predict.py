@@ -53,7 +53,7 @@ def main() -> None:
     print(f"Model: {model.a['name']}@{model.a['version']} ({model.a['type']})")
     if args.features:
         p = model.predict_df(pd.DataFrame([json.loads(args.features)]))[0]
-        print(f"P(drowsy) = {p:.3f} → {'DROWSY' if p >= 0.5 else 'alert'}")
+        print(f"P(drowsy) = {p:.3f} -> {'DROWSY' if p >= 0.5 else 'alert'}")
     else:
         df = pd.read_csv(args.csv)
         df["p_drowsy"] = model.predict_df(df)

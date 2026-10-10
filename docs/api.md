@@ -77,3 +77,24 @@ POST /api/alerts/escalate
 | `failed` | Twilio returned an error |
 
 `test: true` places a call even when escalation is disabled and never texts the emergency contact.
+
+## Driver profile
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| PUT | `/users/me/profile` | ✔ | `{driver_type: "personal" \| "cab" \| "truck", vehicle_number?, full_name?}` |
+| GET | `/sessions/{id}` | ✔ | One session with its events and timeline |
+
+## Smartwatch
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| PUT | `/alerts/watch` | ✔ | Set the ntfy topic `{watch_topic}` (8–64 letters, digits, `-`, `_`) or `null` to turn off |
+| POST | `/alerts/watch` | ✔ | `{reason, test?}` → urgent ntfy notification (priority 5; 3 for tests). Returns `sent` / `failed` / `not_configured` |
+
+## R insights
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/insights` | ✔ | Contents of `frontend/insights/summary.json`, plus whether R is installed |
+| POST | `/insights/run` | ✔ | Runs `Rscript r/insights.R <db> frontend/insights` (503 if R is not installed) |

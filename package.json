@@ -1,0 +1,12 @@
+{
+  "name": "driver-drowsiness-detection",
+  "private": true,
+  "type": "module",
+  "description": "Only used to run the JavaScript unit tests (the website itself needs no build step).",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.9"
+  }
+}

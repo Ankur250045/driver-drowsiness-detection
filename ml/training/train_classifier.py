@@ -84,7 +84,7 @@ def main() -> None:
     X, y, groups = df[FEATURES].to_numpy(), df[LABEL].to_numpy(), df[GROUP].to_numpy()
     n_groups = len(np.unique(groups))
     if n_groups < 3:
-        raise SystemExit(f"Need ≥ 3 recording sessions for grouped evaluation, found {n_groups}.")
+        raise SystemExit(f"Need at least 3 recording sessions for grouped evaluation, found {n_groups}.")
 
     train_idx, test_idx = next(GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=RANDOM_STATE).split(X, y, groups))
     X_tr, X_te, y_tr, y_te, g_tr = X[train_idx], X[test_idx], y[train_idx], y[test_idx], groups[train_idx]
@@ -137,7 +137,7 @@ def main() -> None:
         targets.append(FRONTEND_MODEL)
     save_artifact(artifact, *targets)
     (REPORTS_DIR / "model_comparison.json").write_text(json.dumps(results, indent=2, default=str), encoding="utf-8")
-    print("Exported →", ", ".join(str(t) for t in targets))
+    print("Exported to", ", ".join(str(t) for t in targets))
 
 
 if __name__ == "__main__":

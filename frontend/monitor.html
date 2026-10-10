@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monitor – Driver Drowsiness Detection</title>
+    <link rel="icon" href="img/favicon.png" />
+    <link rel="stylesheet" href="css/style.css" />
+    <!-- face landmark model (MediaPipe Face Mesh) + TensorFlow.js + charts -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.6/dist/face-landmarks-detection.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <header id="site-header"></header>
+
+    <main class="container">
+      <div class="page-head">
+        <div>
+          <h1>Monitor</h1>
+          <p id="driver-line">Loading…</p>
+        </div>
+        <div class="btn-row">
+          <button class="btn" id="calibrate-btn" disabled>Calibrate</button>
+          <button class="btn primary" id="session-btn" disabled>Start driving</button>
+        </div>
+      </div>
+
+      <div class="sleepy-banner hidden" id="sleepy-box">
+        DRIVER SLEEPY — STOP AND HYDRATE
+        <small>Pull over safely, drink some water and take a short break.</small>
+      </div>
+      <div class="notice error hidden" id="error-box"></div>
+      <div class="notice info hidden" id="night-box">
+        Night time (10 pm – 6 am): the alarm is set a little more sensitive than usual.
+      </div>
+      <div class="notice hidden" id="break-box"></div>
+
+      <div class="row main-side">
+        <!-- left column -->
+        <div class="stack">
+          <div class="camera" id="camera">
+            <video id="video" playsinline muted></video>
+            <canvas id="overlay"></canvas>
+            <div class="hud hidden" id="hud">
+              <div><span id="fps">0 fps</span></div>
+              <span class="rec hidden" id="rec">REC</span>
+            </div>
+            <div class="message" id="camera-msg">Starting camera…</div>
+            <div class="bottom hidden" id="calib-box">
+              <div style="margin-bottom: 6px">Calibrating: look at the camera with your eyes open normally.</div>
+              <progress id="calib-progress" value="0" max="1"></progress>
+            </div>
+          </div>
+          <label class="check small"><input type="checkbox" id="show-mesh" checked /> Show landmarks on the video</label>
+
+          <div class="row cols-4">
+            <div class="stat">
+              <div class="label">Eye aspect ratio</div>
+              <div class="value" id="ear">0.000</div>
+              <div class="bar"><span id="ear-bar"></span></div>
+              <div class="hint" id="ear-hint">left –, right –</div>
+            </div>
+            <div class="stat">
+              <div class="label">Mouth aspect ratio</div>
+              <div class="value" id="mar">0.000</div>
+              <div class="bar"><span id="mar-bar"></span></div>
+              <div class="hint" id="mar-hint">0 yawns</div>
+            </div>
+            <div class="stat">
+              <div class="label">PERCLOS (10 s)</div>
+              <div class="value" id="perclos">0.0 %</div>
+              <div class="bar"><span id="perclos-bar"></span></div>
+              <div class="hint">time with eyes closed</div>
+            </div>
+            <div class="stat">
+              <div class="label">Head pitch</div>
+              <div class="value" id="pitch">0°</div>
+              <div class="hint" id="pose-hint">yaw 0°, roll 0°</div>
+            </div>
+          </div>
+
+          <div class="row cols-2">
+            <section class="panel">
+              <div class="panel-head"><h2>Drowsiness probability (last 60 s)</h2></div>
+              <div class="panel-body"><div class="chart-box"><canvas id="prob-chart"></canvas></div></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h2>Eye and mouth signals (last 60 s)</h2></div>
+              <div class="panel-body"><div class="chart-box"><canvas id="signal-chart"></canvas></div></div>
+            </section>
+          </div>
+        </div>
+
+        <!-- right column -->
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-body">
+              <div class="risk">
+                <div class="muted small">Drowsiness probability</div>
+                <div class="percent" id="risk-percent">–</div>
+                <div class="meter">
+                  <span id="risk-bar"></span>
+                  <i class="tick" id="tick-drowsy"></i>
+                  <i class="tick" id="tick-critical"></i>
+                </div>
+                <div class="scale"><span>0</span><span>50</span><span>100</span></div>
+                <span class="status-label bg-no-face" id="status-label">No face</span>
+              </div>
+              <div class="counters">
+                <div><b id="c-blinks">0</b><span>blinks</span></div>
+                <div><b id="c-yawns">0</b><span>yawns</span></div>
+                <div><b id="c-micro">0</b><span>microsleeps</span></div>
+                <div><b id="c-alerts">0</b><span>alarms</span></div>
+              </div>
+              <p class="small muted" style="margin: 10px 0 0" id="model-line"></p>
+            </div>
+          </section>
+
+          <!-- filled in by monitor.js depending on the driver type -->
+          <section class="panel">
+            <div class="panel-head"><h2 id="driver-panel-title">Trip</h2></div>
+            <div class="panel-body" id="driver-panel"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Smartwatch</h2></div>
+            <div class="panel-body">
+              <table class="kv small">
+                <tbody>
+                  <tr><td>Phone notification (ntfy)</td><td id="watch-ntfy">–</td></tr>
+                  <tr><td>Bluetooth band</td><td id="watch-bt">not connected</td></tr>
+                </tbody>
+              </table>
+              <div class="btn-row" style="margin-top: 10px">
+                <button class="btn small" id="bt-connect-btn">Connect Bluetooth band</button>
+                <button class="btn small" id="watch-test-btn">Test vibration</button>
+              </div>
+              <p class="small muted" style="margin: 8px 0 0">
+                Set up phone notifications on the <a href="profile.html">Profile</a> page.
+              </p>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Why this prediction</h2></div>
+            <div class="panel-body" id="contrib"><p class="muted small">Waiting for the first 10-second window…</p></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Events</h2></div>
+            <div class="panel-body"><ul class="events" id="events"><li class="muted">No events yet.</li></ul></div>
+          </section>
+
+          <section class="panel">
+            <details>
+              <summary class="panel-head" style="cursor: pointer"><h2>Settings</h2></summary>
+              <div class="panel-body" id="settings"></div>
+            </details>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- alarm screen -->
+    <div class="alarm hidden" id="alarm" role="alertdialog" aria-labelledby="alarm-title">
+      <div>
+        <h1 id="alarm-title">DRIVER SLEEPY</h1>
+        <p style="font-size: 1.6rem; font-weight: 700">STOP AND HYDRATE</p>
+        <p style="font-size: 1.1rem" id="alarm-reason"></p>
+        <p>Pull over safely, drink some water and take a break.</p>
+        <table>
+          <tbody>
+            <tr><td>Sound</td><td id="a-sound">–</td></tr>
+            <tr><td>Phone vibration</td><td id="a-vibrate">–</td></tr>
+            <tr><td>Smartwatch</td><td id="a-watch">–</td></tr>
+            <tr><td>Phone call</td><td id="a-call">–</td></tr>
+          </tbody>
+        </table>
+        <button class="btn" id="awake-btn">I'm awake</button>
+      </div>
+    </div>
+
+    <script type="module" src="js/pages/monitor.js"></script>
+  </body>
+</html>

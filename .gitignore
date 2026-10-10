@@ -23,3 +23,7 @@ ml/models/*.keras
 
 .DS_Store
 *.tar.gz
+frontend/insights/*.png
+frontend/insights/summary.json
+ml/models/drowsiness_model.json
+ml/evaluation/reports/

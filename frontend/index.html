@@ -1,17 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>DrowsiGuard AI — Driver Drowsiness Detection</title>
-    <meta name="description" content="Real-time driver drowsiness detection with MediaPipe Face Mesh, temporal feature engineering (EAR, MAR, PERCLOS, head pose) and a trainable ML classifier — all running in the browser." />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>Driver Drowsiness Detection</title>
+    <link rel="icon" href="img/favicon.png" />
+    <script>
+      // signed in → monitor, otherwise → login
+      window.location.replace(localStorage.getItem('dd.token') ? 'monitor.html' : 'login.html');
+    </script>
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/app/main.tsx"></script>
-  </body>
+  <body></body>
 </html>

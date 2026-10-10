@@ -1,5 +1,6 @@
+# Website + API + R in one container → http://localhost:8000
 services:
-  backend:
+  app:
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -10,15 +11,6 @@ services:
       - db-data:/data
     ports:
       - "8000:8000"
-
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-    depends_on:
-      - backend
-    ports:
-      - "8080:80"
 
 volumes:
   db-data:
